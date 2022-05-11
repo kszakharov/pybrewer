@@ -1,0 +1,38 @@
+class {{ formula.name }} < Formula
+  include Language::Python::Virtualenv
+
+  {% if formula.description %}
+  desc "{{ formula.description}}"
+  {%- endif %}
+  {%- if formula.homepage %}
+  homepage "{{ formula.homepage }}"
+  {%- endif %}
+  {%- if formula.head %}
+  head {{ formula.head }}
+  {%- endif %}
+  {%- if formula.revision %}
+  revision {{ formula.revision }}
+  {% endif %}
+
+  depends_on "python@{{ formula.python_version }}"
+
+  {% for resource in formula.resources %}
+  resource "{{  resource.name  }}" do
+    url "{{  resource.tarball_url  }}"
+    {%- if resource.sha256 %}
+    sha256 "{{  resource.sha256  }}"
+    {%- endif %}
+  end
+  {% endfor %}
+
+  def install
+    virtualenv_install_with_resources
+    {%- for completion in formula.completions %}
+    {{ completion.shell }}_completion.install "{{ completion.path }}"
+    {%- endfor %}
+  end
+
+  test do
+    system "false"
+  end
+end
