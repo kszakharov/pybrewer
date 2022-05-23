@@ -117,7 +117,7 @@ class PoetryProjectFormula(Formula):
                     for dependency in poetry.locker.get_project_dependency_packages(
                         project_requires=poetry.package.all_requires#[:0]
                     )
-                    if dependency.name not in pybrewer_config.get("dependencies", {}).get("exlude", [])
+                    if dependency.name not in pybrewer_config.get("dependencies", {}).get("exclude", [])
                 ]
             ),
         )
