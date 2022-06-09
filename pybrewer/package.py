@@ -18,6 +18,9 @@ class Package:
     def __lt__(self, other) -> bool:
         return self.name < other.name
 
+    def __eq__(self, other) -> bool:
+        return self.tarball_url == other.tarball_url
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: name={self.name}>"
 

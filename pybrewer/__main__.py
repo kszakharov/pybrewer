@@ -27,8 +27,7 @@ def parse_args() -> Namespace:
 def formula_create(args: Namespace) -> None:
     formula = PoetryProjectFormula(args.project)
     if args.formula:
-        # write formula to file
-        pass
+        formula.write(path=args.formula)
     else:
         formula.display()
 
@@ -41,8 +40,7 @@ def formula_update(args: Namespace) -> None:
     if args.diff:
         file_formula.diff()
     else:
-        # write formula to file
-        pass
+        file_formula.write()
 
 
 def main() -> None:

@@ -62,6 +62,9 @@ class Formula(BaseModel):
 
         print(self.render())
 
+    def write(self, path: PosixPath) -> None:
+        path.write_text(self.render() + "\n")
+
     def update(self, other: Formula) -> None:
         self.description = other.description
         self.homepage = other.homepage
@@ -185,3 +188,6 @@ class FileFormula(Formula):
                     print(line)
         else:
             print("\33[32m" + "No changes." + "\033[0m")
+
+    def write(self) -> None:
+        super().write(path=self.formula_path)
