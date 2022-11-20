@@ -9,10 +9,18 @@ from typing import Optional
 
 from jinja2 import Template
 from poetry.factory import Factory
+from poetry.core.packages.dependency_group import MAIN_GROUP
 from pydantic import BaseModel
 from ttp import ttp
 
 from pybrewer.package import FormulaPackage, Package
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from poetry.core.packages.dependency import Dependency
+    from poetry.repositories import Repository
+    from poetry.core.packages.package import Package
+    from poetry.poetry import Poetry
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 JINJA2_TEMPLATE = TEMPLATES_DIR / "formula.rb.j2"
@@ -102,6 +110,30 @@ class PoetryProjectFormula(Formula):
             for shell, path in pybrewer_config.get("completions", {}).items()
         ]
 
+        exclude = pybrewer_config.get("dependencies", {}).get("exclude", [])
+
+        def get_dependencies(dependencies: list[Dependency], locked_repository: Repository) -> list[Package]:
+            all_packages = []
+            for dependency in dependencies:
+                packages = locked_repository.find_packages(dependency=dependency)
+                for package in packages:
+                    all_packages += get_dependencies(
+                        dependencies=package.requires,
+                        locked_repository=locked_repository,
+                    )
+                    all_packages.append(package)
+            return all_packages
+
+        locked_repository = poetry.locker.locked_repository()
+
+        dg = poetry.package.dependency_group(MAIN_GROUP)
+        dependencies = get_dependencies(
+            dependencies=dg.dependencies,
+            locked_repository=locked_repository,
+        )
+        dependencies = {(dep.name, dep.version): dep for dep in dependencies}
+        dependencies = dependencies.values()
+
         super().__init__(
             name=poetry_config["name"][:1].upper() + poetry_config["name"][1:],
             description=poetry_config.get("description"),
@@ -115,11 +147,9 @@ class PoetryProjectFormula(Formula):
             python_version=poetry.package.python_versions[1:],
             resources=sorted(
                 [
-                    Package.create(dependency)
-                    for dependency in poetry.locker.get_project_dependency_packages(
-                        project_requires=poetry.package.all_requires#[:0]
-                    )
-                    if dependency.name not in pybrewer_config.get("dependencies", {}).get("exclude", [])
+                    Package.create(package)
+                    for package in dependencies
+                    if package.name not in exclude
                 ]
             ),
         )
