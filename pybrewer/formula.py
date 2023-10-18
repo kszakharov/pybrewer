@@ -178,7 +178,7 @@ class FileFormula(Formula):
         parser.parse()
         result = parser.result(structure="flat_list")[0]
 
-        self.result = result
+        #self.result = result
         # TODO проверить что новый параметр действительно нужен только при сборке
 
         head_string = f'"{result["head"]}"'
@@ -188,9 +188,9 @@ class FileFormula(Formula):
             head_string += f', branch: "{result["branch"]}"'
 
         #from pprint import pprint as print
-        print(f"{self.python_version=}")
-        print(f"{self.dependencies=}")
-        exit()
+        #print(f"{self.python_version=}")
+        #print(f"{self.dependencies=}")
+        #exit()
 
         super().__init__(
             name=result["name"],
@@ -203,9 +203,9 @@ class FileFormula(Formula):
             repository_url="",
             documentation_url="",
 
-            #python_version=result["python_version"],
-            python_version=self.python_version,
-            dependencies=self.dependencies,
+            python_version="3.9",
+            #python_version=self.python_version,
+            dependencies=result["dependencies"],
             resources=[FormulaPackage(resouce) for resouce in result["resources"]],
             formula_string=formula_string,
             formula_path=formula_path,
