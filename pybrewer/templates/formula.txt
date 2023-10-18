@@ -8,6 +8,9 @@ class {{ name }} &lt; Formula
   revision {{ revision | to_int}}
 
   depends_on "python@{{ python_version }}"
+  <group name="dependencies" itemize="dependency">
+  depends_on "{{ dependency }}"
+  </group>
 
   <group name="resources">
   resource "{{ resource }}" do

@@ -27,6 +27,12 @@ JINJA2_TEMPLATE = TEMPLATES_DIR / "formula.rb.j2"
 TTP_TEMPLATE = TEMPLATES_DIR / "formula.txt"
 
 
+BREW_DEPENDENCIES = [
+    "numpy",
+    "pillow",
+]
+
+
 class Completion(BaseModel):
     """Shell completion model."""
 
@@ -44,6 +50,7 @@ class Formula(BaseModel):
     completions: list[Completion] = []
 
     python_version: str
+    dependencies: list[str] = []
     resources: list[Package] = []
 
     repository_url: Optional[str] = None
@@ -78,7 +85,7 @@ class Formula(BaseModel):
         self.head = other.head
         self.completions = other.completions
 
-        if self.resources != other.resources:
+        if self.resources != other.resources: #or dep
             self.resources = other.resources
             if self.revision:
                 self.revision += 1
@@ -145,11 +152,14 @@ class PoetryProjectFormula(Formula):
             documentation_url=poetry_config.get("documentation"),
 
             python_version=poetry.package.python_versions[1:],
+            dependencies = sorted(
+                package.name for package in dependencies if package.name in BREW_DEPENDENCIES
+            ),
             resources=sorted(
                 [
                     Package.create(package)
                     for package in dependencies
-                    if package.name not in exclude
+                    if package.name not in exclude and package.name not in BREW_DEPENDENCIES
                 ]
             ),
         )
@@ -160,6 +170,7 @@ class FileFormula(Formula):
 
     formula_path: PosixPath
     formula_string: str
+    result = dict
 
     def __init__(self, formula_path: PosixPath) -> None:
         formula_string = formula_path.read_text()
@@ -167,11 +178,19 @@ class FileFormula(Formula):
         parser.parse()
         result = parser.result(structure="flat_list")[0]
 
+        self.result = result
+        # TODO проверить что новый параметр действительно нужен только при сборке
+
         head_string = f'"{result["head"]}"'
         if result["head"].startswith("git@"):
             head_string += ", :using => :git"
         if result["branch"]:
             head_string += f', branch: "{result["branch"]}"'
+
+        #from pprint import pprint as print
+        print(f"{self.python_version=}")
+        print(f"{self.dependencies=}")
+        exit()
 
         super().__init__(
             name=result["name"],
@@ -184,11 +203,36 @@ class FileFormula(Formula):
             repository_url="",
             documentation_url="",
 
-            python_version=result["python_version"],
+            #python_version=result["python_version"],
+            python_version=self.python_version,
+            dependencies=self.dependencies,
             resources=[FormulaPackage(resouce) for resouce in result["resources"]],
             formula_string=formula_string,
             formula_path=formula_path,
         )
+
+    @property
+    def python_version(self) -> str:
+        for dependency in self.result["dependencies"]:
+            if dependency.startswith("python@"):
+                return dependency.lstrip("python@")
+        else:
+            raise Exception("Python version not found.")
+
+    @property
+    def dependencies(self) -> list[str]:
+        return sorted([dependency for dependency in self.result["dependencies"] if not dependency.startswith("python@")])
+
+    @property
+    def head(self) -> str:
+        head = f'"{self.result["head"]}"'
+        if self.result["head"].startswith("git@"):
+            head += ", :using => :git"
+        if self.result["branch"]:
+            head += f', branch: "{self.result["branch"]}"'
+
+        return head
+
 
     def diff(self) -> None:
         """Diff formula with file."""

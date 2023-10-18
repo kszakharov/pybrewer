@@ -15,6 +15,9 @@ class {{ formula.name }} < Formula
   {% endif %}
 
   depends_on "python@{{ formula.python_version }}"
+  {%- for dependency in formula.dependencies %}
+  depends_on "{{  dependency  }}"
+  {%- endfor %}
 
   {% for resource in formula.resources %}
   resource "{{  resource.name  }}" do
